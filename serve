@@ -1,0 +1,1 @@
+sudo tailscale serve --service=svc:jellyfin http://localhost:8096

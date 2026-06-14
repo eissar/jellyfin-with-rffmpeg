@@ -1,0 +1,33 @@
+remote:
+  args:
+rffmpeg:
+  logging:
+    debug: true
+    logfile: /config/rffmpeg/rffmpeg.log
+
+  directories:
+    state: "/var/lib/rffmpeg"
+    persist: "/run/shm/rffmpeg"
+    owner: abc
+    group: abc
+
+  remote:
+    user: eissar
+    args:
+      - "-i"
+      - "/config/.ssh/id_ed25519"
+      - "-o"
+      - "IdentitiesOnly=yes"
+      - "-o"
+      - "ConnectTimeout=3"
+      - "-o"
+      - "ConnectionAttempts=1"
+      - "-o"
+      - "BatchMode=yes"
+      - "-o"
+      - "UserKnownHostsFile=/config/.ssh/known_hosts"
+
+  commands:
+    ssh: "/usr/bin/ssh"
+    ffmpeg: "/usr/bin/ffmpeg"
+    ffprobe: "/usr/bin/ffprobe"

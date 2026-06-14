@@ -1,0 +1,64 @@
+services:
+  jellyfin:
+    container_name: jellyfin
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM lscr.io/linuxserver/jellyfin@sha256:234ea8d508b2cba26054d0dac9d4c0353435dce483e8b266947d473629774559
+
+        # Base tools + Python deps for rffmpeg
+        RUN apt-get update \
+          && apt-get install -y --no-install-recommends \
+             openssh-client python3 git \
+             python3-click python3-yaml \
+          && rm -rf /var/lib/apt/lists/*
+
+        RUN git clone https://github.com/joshuaboniface/rffmpeg.git /opt/rffmpeg \
+          && cd /opt/rffmpeg \
+          && git checkout f54ac843c7c8a157562e7ce37aaebbc5cb41354e \
+          && chmod +x /opt/rffmpeg/rffmpeg \
+          && ln -sf /opt/rffmpeg/rffmpeg /usr/local/bin/rffmpeg \
+          && ln -sf /usr/local/bin/rffmpeg /usr/local/bin/ffmpeg \
+          && ln -sf /usr/local/bin/rffmpeg /usr/local/bin/ffprobe
+
+
+        RUN rm -f /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/lib/jellyfin-ffmpeg/ffprobe \
+          && ln -s /usr/local/bin/rffmpeg /usr/lib/jellyfin-ffmpeg/ffmpeg \
+          && ln -s /usr/local/bin/rffmpeg /usr/lib/jellyfin-ffmpeg/ffprobe
+
+        RUN mkdir -p /var/log/jellyfin /etc/rffmpeg /var/lib/rffmpeg \
+          && chown -R abc:abc /var/log/jellyfin /var/lib/rffmpeg
+
+        COPY --chmod=755 --chown=root:root \
+          custom-cont-init.d/40-rffmpeg-init \
+          /custom-cont-init.d/40-rffmpeg-init
+
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - RFFMPEG_TARGETS=${RFFMPEG_TARGETS:?}
+      - RFFMPEG_DEFAULT_WEIGHT=1
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ./config:/config
+      - /mnt/pickle/:/data
+      - /mnt/pickle/transcode:/transcode
+      - ./logs/jellyfin:/var/log/jellyfin
+
+      # NOTE: docker exec -it jellyfin rm /var/lib/rffmpeg/rffmpeg.db
+      - rffmpeg-state:/var/lib/rffmpeg
+      - ./config/rffmpeg.yml:/etc/rffmpeg/rffmpeg.yml:ro
+
+      # ssh keys
+      - ./ssh/id_ed25519:/config/.ssh/id_ed25519:ro
+      - ./ssh/id_ed25519.pub:/config/.ssh/id_ed25519.pub:ro
+      # need to run ssh-keyscan -H {{RFFMPEG TARGET}} >> ./ssh/known_hosts
+      - ./ssh/known_hosts:/config/.ssh/known_hosts:ro
+    ports:
+      - 8096:8096
+    restart: unless-stopped
+
+volumes:
+  rffmpeg-state:
