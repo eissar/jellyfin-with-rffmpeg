@@ -31,3 +31,5 @@ rffmpeg:
     ssh: "/usr/bin/ssh"
     ffmpeg: "/usr/bin/ffmpeg"
     ffprobe: "/usr/bin/ffprobe"
+    fallback_ffmpeg: "/usr/local/bin/rffmpeg-no-fallback"
+    fallback_ffprobe: "/usr/local/bin/rffmpeg-no-fallback"

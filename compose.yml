@@ -29,6 +29,14 @@ services:
         RUN mkdir -p /var/log/jellyfin /etc/rffmpeg /var/lib/rffmpeg \
           && chown -R abc:abc /var/log/jellyfin /var/lib/rffmpeg
 
+        # hack so rffmpeg doesn't endlessly loop
+        RUN printf '%s\n' \
+          '#!/usr/bin/env sh' \
+          'echo "rffmpeg: no remote transcoder available; refusing localhost fallback" >&2' \
+          'exit 1' \
+          > /usr/local/bin/rffmpeg-no-fallback \
+          && chmod +x /usr/local/bin/rffmpeg-no-fallback
+
         COPY --chmod=755 --chown=root:root \
           custom-cont-init.d/40-rffmpeg-init \
           /custom-cont-init.d/40-rffmpeg-init
